@@ -135,3 +135,5 @@ def load_config(file_name: str) -> MazeConfig:
     config: MazeConfig = parse_config(data)
 
     validate_config(config)
+
+    return config

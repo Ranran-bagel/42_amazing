@@ -1,4 +1,4 @@
-from .config import load_config
+from .config import MazeConfig, load_config
 from .exceptions import ConfigError
 
-__all__ = ["load_config", "ConfigError"]
+__all__ = ["MazeConfig", "load_config", "ConfigError"]
