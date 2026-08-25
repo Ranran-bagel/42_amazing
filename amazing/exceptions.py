@@ -7,5 +7,8 @@ class ConfigError(MazeError):
 class MazeGenerationError(MazeError):
     pass
 
+class PatternError(MazeGenerationError):
+    pass
+
 class OutputError(MazeError):
     pass
