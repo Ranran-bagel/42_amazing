@@ -1,7 +1,7 @@
 from amazing import MazeGenerationError, PatternError
 from amazing import MazeConfig
 from .algorithms.utils import is_inside, remove_wall
-from .algorithms import dfs, prim
+from .algorithms import dfs, prim, kruskal
 from .pathfinding import bfs, path_to_direction
 from .cell import Cell
 from . import constants
@@ -164,6 +164,8 @@ class MazeGenerator:
             dfs(self.grid, self.rng)
         elif self._algorithm == "prim":
             prim(self.grid, self.rng)
+        elif self._algorithm == "kruskal":
+            kruskal(self.grid, self.rng)
         else:
             raise MazeGenerationError(
                 f"Unsupported algorithm: {self._algorithm}"
