@@ -1,10 +1,11 @@
 from amazing import MazeGenerationError, PatternError
 from amazing import MazeConfig
-from algorithms.utils import is_inside, remove_wall
+from .algorithms.utils import is_inside, remove_wall
 from .algorithms import dfs, prim
 from .pathfinding import bfs, path_to_direction
 from .cell import Cell
 from . import constants
+import random
 
 FORTY_TWO_WIDTH = 7
 FORTY_TWO_HEIGHT = 5

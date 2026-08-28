@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-import constants
+from . import constants
 
 @dataclass
 class Cell:

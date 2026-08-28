@@ -1,5 +1,5 @@
 from .generator import MazeGenerator
-from cell import Cell
-import constants
+from .cell import Cell
+from . import constants
 
 __all__ = ["MazeGenerator", "Cell", "constants"]

@@ -1,16 +1,16 @@
 from amazing import MazeGenerationError
-from cell import Cell
-from utils import remove_wall, is_inside
-import constants
+from ..cell import Cell
+from .utils import remove_wall, is_inside
+from .. import constants
 import random
 
 def get_unvisited_neighbors(
     grid: list[list[Cell]], 
     cur_cell: Cell,
     visited: list[tuple[int, int]],
-    width: int,
-    height: int,
     ) -> list[tuple[int, int, int]]:
+    width = len(grid[0])
+    height = len(grid)
     neighbors: list[tuple[int, int, int]] = []
     x: int = cur_cell.x
     y: int = cur_cell.y
@@ -44,13 +44,11 @@ def dfs(grid: list[list[Cell]], rng: random.Random) -> None:
 
     visited: set[tuple[int, int]] = {(start.x, start.y)}
     stack: list[tuple[int, int]] = [(start.x, start.y)]
-    width = len(grid[0])
-    height = len(grid)
 
     while stack:
         x, y = stack[-1]
         cur_cell = grid[y][x]
-        neighbors = get_unvisited_neighbors(grid, cur_cell, visited, width, height)
+        neighbors = get_unvisited_neighbors(grid, cur_cell, visited)
 
         if neighbors:
             direction, nx, ny = rng.choice(neighbors)

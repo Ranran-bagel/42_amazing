@@ -1,7 +1,7 @@
 from amazing import MazeGenerationError
-from cell import Cell
-from utils import remove_wall, is_inside
-import constants
+from ..cell import Cell
+from .utils import remove_wall, is_inside
+from .. import constants
 import random
 
 def get_frontiers(
