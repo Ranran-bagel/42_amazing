@@ -1,7 +1,7 @@
 from .exceptions import ConfigError
 from dataclasses import dataclass
 
-REQUIRED_KAYS = {
+REQUIRED_KEYS = {
     "WIDTH",
     "HEIGHT",
     "ENTRY",
@@ -11,6 +11,8 @@ REQUIRED_KAYS = {
 }
 
 DEFAULT_SEED = 42
+DEFAULT_ALGORITHM = "dfs"
+ALGORITHMS = {"dfs", "prim", "kruskal"}
 
 @dataclass(frozen=True)
 class MazeConfig:
@@ -21,20 +23,23 @@ class MazeConfig:
     output_file: str
     perfect: bool
     seed: int
+    algorithm: str
 
-def read_config(file_name: str) -> dict:
-    config: dict = dict()
+def read_config(file_name: str) -> dict[str, str]:
+    config: dict[str, str] = dict()
     try:
         with open(file_name, "r") as file:
             for line in file:
-                if "=" not in line:
-                    raise ConfigError(f"Invaild config syntax: {line}")
                 line = line.strip()
                 if not line or line.startswith("#"):
                     continue
+                if "=" not in line:
+                    raise ConfigError(f"Invaild config syntax: {line}")
                 key, value = line.split("=", 1)
-                if not (value or key):
+                if not key or not value:
                     raise ConfigError(f"Invalide config syntxt: {line}")
+                if key in config:
+                    raise ConfigError(f"Duplicate config key: {key}")
                 config[key.strip()] = value.strip()
     except FileNotFoundError as error:
         raise ConfigError(f"Config file not found: {file_name}"
@@ -47,24 +52,27 @@ def read_config(file_name: str) -> dict:
                           ) from error
     return config
 
-def validate_required_key(data: dict) -> None:
-    for key in REQUIRED_KAYS:
+def validate_required_key(data: dict[str, str]) -> None:
+    for key in REQUIRED_KEYS:
         if key not in data:
             raise ConfigError(f"Missing required key: {key}")
 
 def parse_coordinate(value: str) -> tuple[int, int]:
-    parts: list = value.split(",")
+    parts: list[str] = value.split(",")
 
     if len(parts) != 2:
         raise ConfigError(
-            f"Invalidate coordinate: {value}. Expected format: x, y"
+            f"Invalid coordinate: {value}. Expected format: x, y"
             )
     try:
         x = int(parts[0])
         y = int(parts[1])
     except ValueError as error:
-        raise ConfigError(f"Invalidate coordinate: {value}.",
-                          f" Coordinate must be integers") from error
+        raise ConfigError(
+            f"Invalid coordinate: {value}. "
+            "Coordinates must be integers"
+        ) from error
+
     return (x, y)
 
 def parse_perfect(value: str) -> bool:
@@ -73,22 +81,19 @@ def parse_perfect(value: str) -> bool:
     if value == "False":
         return False
 
-    raise ConfigError(f"PERFECT must be True or False")
+    raise ConfigError("PERFECT must be True or False")
 
-def parse_config(raw_data: dict) -> MazeConfig:
+def parse_config(raw_data: dict[str, str]) -> MazeConfig:
     try:
         width = int(raw_data["WIDTH"])
         height = int(raw_data["HEIGHT"])
     except ValueError as error:
-        raise ConfigError(f"WIDTH and HEIGHT must be integers") from error
+        raise ConfigError("WIDTH and HEIGHT must be integers") from error
     
     entry = parse_coordinate(raw_data["ENTRY"])
     exit = parse_coordinate(raw_data["EXIT"])
 
-    try:
-        output_file = str(raw_data["OUTPUT_FILE"])
-    except ValueError as error:
-        raise ConfigError(f"Invalid OUTPUT_FILE") from error
+    output_file = raw_data["OUTPUT_FILE"]
 
     perfect = parse_perfect(raw_data["PERFECT"])
 
@@ -96,9 +101,19 @@ def parse_config(raw_data: dict) -> MazeConfig:
         try:
             seed = int(raw_data["SEED"])
         except ValueError as error:
-            raise ConfigError(f"SEED must be an integer") from error
+            raise ConfigError("SEED must be an integer") from error
     else:
         seed = DEFAULT_SEED
+
+    if "ALGORITHM" in raw_data:
+        algorithm = raw_data["ALGORITHM"].lower()
+        if algorithm not in ALGORITHMS:
+            raise ConfigError(
+                f"Invalid algorithm: {algorithm}. "
+                f"Expected one of: {', '.join(sorted(ALGORITHMS))}"
+            )
+    else:
+        algorithm = DEFAULT_ALGORITHM
 
     return MazeConfig(
         width=width,
@@ -108,6 +123,7 @@ def parse_config(raw_data: dict) -> MazeConfig:
         output_file=output_file,
         perfect=perfect,
         seed=seed,
+        algorithm=algorithm
     )
 
 def is_inside(position: tuple[int, int], width: int, height: int) -> bool:

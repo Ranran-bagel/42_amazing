@@ -4,3 +4,4 @@ ENTRY=2, 3
 EXIT=19, 13
 OUTPUT_FILE=output_file.txt
 PERFECT=False
+ALGORITHM=dfs

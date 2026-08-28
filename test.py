@@ -17,9 +17,9 @@ def main() -> None:
         raise ConfigError(f"Invalid parse format")
     config: MazeConfig = load_config(sys.argv[1])
     print_configs(config)
-    generator = MazeGenerator(config.entry, config.exit, config.width, config.height, config.seed, config.perfect)
+    generator = MazeGenerator(config)
     generator.generate()
-    generator.output_mazefile(config.output_file)
+    generator.output_mazefile()
 
 if __name__ == "__main__":
     main()
