@@ -3,7 +3,9 @@
 from mlx import Mlx
 
 from .config import MazeConfig
-from mazegen.generator import EAST, NORTH, SOUTH, WEST, Cell, MazeGenerator
+from mazegen import Cell, MazeGenerator
+from mazegen import bfs
+from mazegen import constants
 
 Color = tuple[int, int, int, int]
 Position = tuple[int, int]
@@ -185,26 +187,32 @@ class MazeRenderer:
         y1 = y0 + self.CELL_SIZE
         length = self.CELL_SIZE + self.WALL_THICKNESS
 
-        if cell.has_wall(NORTH):
+        if cell.has_wall(constants.NORTH):
             self.fill_rect(
                 x0, y0, length, self.WALL_THICKNESS, self.wall_color
             )
-        if cell.has_wall(EAST):
+        if cell.has_wall(constants.EAST):
             self.fill_rect(
                 x1, y0, self.WALL_THICKNESS, length, self.wall_color
             )
-        if cell.has_wall(SOUTH):
+        if cell.has_wall(constants.SOUTH):
             self.fill_rect(
                 x0, y1, length, self.WALL_THICKNESS, self.wall_color
             )
-        if cell.has_wall(WEST):
+        if cell.has_wall(constants.WEST):
             self.fill_rect(
                 x0, y0, self.WALL_THICKNESS, length, self.wall_color
             )
 
     def _refresh_path(self) -> None:
         """Cache the current shortest path for quick redraws."""
-        self.path_cells = set(self.generator.bfs())
+        self.path_cells = set(
+            bfs(
+                self.generator.grid,
+                self.generator._entry,
+                self.generator._exit,
+                )
+                )
 
     def draw_maze(self) -> None:
         """Draw cell fills first and walls last so walls remain visible."""
@@ -329,7 +337,6 @@ def _on_key(keycode: int, renderer: MazeRenderer) -> None:
     except Exception as error:
         print(f"Rendering error: {error}")
         renderer.stop()
-
 
 def _on_expose(renderer: MazeRenderer) -> None:
     """MLX callback used when the window asks to be redrawn."""
