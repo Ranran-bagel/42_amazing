@@ -2,13 +2,14 @@ from collections import deque
 from .cell import Cell
 from . import constants
 
+
 def bfs(
     grid: list[list[Cell]],
     entry: tuple[int, int],
-    exit: tuple[int, int]
-    ) -> list[tuple[int, int]]:
+    exit: tuple[int, int],
+) -> list[tuple[int, int]]:
     queue = deque([entry])
-    visited: set[tuple[int, int]] = set((entry))
+    visited: set[tuple[int, int]] = {(entry)}
     parent: dict = {}
     while queue:
         current = queue.popleft()
@@ -35,6 +36,7 @@ def bfs(
     path.append(entry)
     path.reverse()
     return path
+
 
 def path_to_direction(path: list) -> str:
     directions: list = []

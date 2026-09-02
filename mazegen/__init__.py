@@ -1,6 +1,14 @@
 from .generator import MazeGenerator
+from .exceptions import MazeError, ConfigError
+from .config import MazeConfig
 from .cell import Cell
 from .pathfinding import bfs
 from . import constants
 
-__all__ = ["MazeGenerator", "Cell", "constants", "bfs"]
+__all__ = ["MazeGenerator",
+           "Cell",
+           "constants",
+           "bfs",
+           "MazeConfig",
+           "MazeError", "ConfigError",
+           ]

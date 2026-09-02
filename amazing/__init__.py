@@ -1,9 +1,4 @@
-from .config import MazeConfig, load_config
-from .exceptions import MazeError
-from .exceptions import ConfigError, MazeGenerationError, PatternError
+from .config_parser import load_config
 from .renderer import MazeRenderer
 
-__all__ = ["MazeConfig", "load_config",
-           "ConfigError", "MazeGenerationError", "MazeRenderer",
-            "PatternError","MazeError",
-            ]
+__all__ = ["load_config", "MazeRenderer"]

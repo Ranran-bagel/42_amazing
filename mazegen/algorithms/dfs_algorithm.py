@@ -1,14 +1,15 @@
-from amazing import MazeGenerationError
+from ..exceptions import MazeGenerationError
 from ..cell import Cell
 from .utils import remove_wall, is_inside
 from .. import constants
 import random
 
+
 def get_unvisited_neighbors(
-    grid: list[list[Cell]], 
+    grid: list[list[Cell]],
     cur_cell: Cell,
-    visited: list[tuple[int, int]],
-    ) -> list[tuple[int, int, int]]:
+    visited: set[tuple[int, int]],
+) -> list[tuple[int, int, int]]:
     width = len(grid[0])
     height = len(grid)
     neighbors: list[tuple[int, int, int]] = []
@@ -25,6 +26,7 @@ def get_unvisited_neighbors(
             continue
         neighbors.append((direction, nx, ny))
     return neighbors
+
 
 def dfs(grid: list[list[Cell]], rng: random.Random) -> None:
     accessible_count = sum(

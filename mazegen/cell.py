@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from . import constants
 
+
 @dataclass
 class Cell:
     x: int

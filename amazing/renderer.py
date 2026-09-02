@@ -2,7 +2,7 @@
 
 from mlx import Mlx
 
-from .config import MazeConfig
+from mazegen import MazeConfig
 from mazegen import Cell, MazeGenerator
 from mazegen import bfs
 from mazegen import constants
@@ -47,13 +47,25 @@ class MazeRenderer:
         if self.rows == 0 or self.cols == 0:
             raise RuntimeError("Cannot render an empty maze")
 
-        self.window_width = (
-            self.MARGIN * 2 + self.cols * self.CELL_SIZE
-            + self.WALL_THICKNESS
+        maze_width = (
+            self.cols * self.CELL_SIZE
+            + self.MARGIN * 2
         )
+
+        self.window_width = max(
+            maze_width,
+            600,
+        )
+
+        self.offset_x = (
+            self.window_width - maze_width
+        ) // 2
+
         self.window_height = (
-            self.MARGIN * 2 + self.rows * self.CELL_SIZE
-            + self.WALL_THICKNESS + self.CONTROL_HEIGHT
+            self.MARGIN * 2
+            + self.rows * self.CELL_SIZE
+            + self.WALL_THICKNESS
+            + self.CONTROL_HEIGHT
         )
 
         self.show_path = False
@@ -163,8 +175,11 @@ class MazeRenderer:
     def _cell_origin(self, x: int, y: int) -> Position:
         """Convert maze coordinates to the top-left window coordinate."""
         return (
-            self.MARGIN + x * self.CELL_SIZE,
-            self.MARGIN + y * self.CELL_SIZE,
+            self.offset_x
+            + self.MARGIN
+            + x * self.CELL_SIZE,
+            self.MARGIN
+            + y * self.CELL_SIZE,
         )
 
     def fill_cell(self, x: int, y: int, color: Color) -> None:
@@ -211,8 +226,8 @@ class MazeRenderer:
                 self.generator.grid,
                 self.generator._entry,
                 self.generator._exit,
-                )
-                )
+            )
+        )
 
     def draw_maze(self) -> None:
         """Draw cell fills first and walls last so walls remain visible."""
@@ -337,6 +352,7 @@ def _on_key(keycode: int, renderer: MazeRenderer) -> None:
     except Exception as error:
         print(f"Rendering error: {error}")
         renderer.stop()
+
 
 def _on_expose(renderer: MazeRenderer) -> None:
     """MLX callback used when the window asks to be redrawn."""

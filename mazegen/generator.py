@@ -1,7 +1,9 @@
-from amazing import MazeGenerationError, PatternError
-from amazing import MazeConfig
+from .exceptions import MazeGenerationError, PatternError
+from .config import MazeConfig
 from .algorithms.utils import is_inside, remove_wall
-from .algorithms import dfs, prim, kruskal
+from .algorithms.dfs_algorithm import dfs
+from .algorithms.kruskal_algorithm import kruskal
+from .algorithms.prim_algorithm import prim
 from .pathfinding import bfs, path_to_direction
 from .cell import Cell
 from . import constants
@@ -17,10 +19,11 @@ FORTY_TWO_PATTERN = (
 
     (0, 2), (1, 2), (2, 2), (4, 2), (5, 2), (6, 2),
 
-                    (2, 3), (4, 3),
+    (2, 3), (4, 3),
 
-                    (2, 4), (4, 4), (5, 4), (6, 4),
+    (2, 4), (4, 4), (5, 4), (6, 4),
 )
+
 
 class MazeGenerator:
     def __init__(self, config: MazeConfig) -> None:
@@ -41,8 +44,8 @@ class MazeGenerator:
     def reset_grid(self) -> None:
         self.grid = [
                     [Cell(x, y) for x in range(self._width)]
-                    for y in range(self._height)
-                ]
+            for y in range(self._height)
+        ]
 
     def _can_create_42(self) -> bool:
         return (
@@ -62,7 +65,7 @@ class MazeGenerator:
             if (x, y) == self._exit:
                 return False
         return True
-    
+
     def _place_42_at(self, start_x: int, start_y: int,) -> None:
         for dx, dy in FORTY_TWO_PATTERN:
             x = start_x + dx
@@ -91,7 +94,7 @@ class MazeGenerator:
             start_x, start_y = self.rng.choice(valid_positions)
             self._place_42_at(start_x, start_y)
 
-    def add_wall(cur_cell: Cell, next_cell: Cell, direction: int) -> None:
+    def add_wall(self, cur_cell: Cell, next_cell: Cell, direction: int) -> None:
         cur_cell.close_wall(direction)
         next_cell.close_wall(constants.OPPOSITE[direction])
 
@@ -136,9 +139,13 @@ class MazeGenerator:
                     south_cell = None
                 if cell.blocked:
                     continue
-                if east_cell and not east_cell.blocked and cell.has_wall(constants.EAST):
+                if (east_cell
+                    and not east_cell.blocked
+                        and cell.has_wall(constants.EAST)):
                     candidates.append((cell, east_cell, constants.EAST))
-                if south_cell and not south_cell.blocked and cell.has_wall(constants.SOUTH):
+                if (south_cell
+                    and not south_cell.blocked
+                        and cell.has_wall(constants.SOUTH)):
                     candidates.append((cell, south_cell, constants.SOUTH))
 
         target: int = max(1, len(candidates) // 10)
@@ -185,9 +192,12 @@ class MazeGenerator:
                 file.write("\n")
                 file.write(f"{self._entry[0]}, {self._entry[1]}\n")
                 file.write(f"{self._exit[0]}, {self._exit[1]}\n")
-                path: list[tuple[int, int]] = bfs(self.grid, self._entry, self._exit)
+                path: list[tuple[int, int]] = bfs(
+                    self.grid, self._entry, self._exit)
                 file.write(path_to_direction(path))
         except PermissionError as error:
-            raise MazeGenerationError(f"Permission denied: {file_name}") from error
+            raise MazeGenerationError(f"Permission denied: {
+                                      file_name}") from error
         except OSError as error:
-            raise MazeGenerationError(f"Cannot write maze file: {file_name}") from error
+            raise MazeGenerationError(f"Cannot write maze file: {
+                                      file_name}") from error

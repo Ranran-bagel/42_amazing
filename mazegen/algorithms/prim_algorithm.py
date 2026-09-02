@@ -1,15 +1,16 @@
-from amazing import MazeGenerationError
+from ..exceptions import MazeGenerationError
 from ..cell import Cell
 from .utils import remove_wall, is_inside
 from .. import constants
 import random
+
 
 def get_frontiers(
     grid: list[list[Cell]],
     visited: set[tuple[int, int]],
     cur_cell: Cell,
     frontiers: list[tuple[int, int, int, int, int]]
-    ) -> None:
+) -> None:
     x: int = cur_cell.x
     y: int = cur_cell.y
     width = len(grid[0])
@@ -26,6 +27,7 @@ def get_frontiers(
         if not cur_cell.has_wall(direction):
             continue
         frontiers.append((x, y, nx, ny, direction))
+
 
 def prim(grid: list[list[Cell]], rng: random.Random) -> None:
     accessible_count: int = sum(
@@ -47,7 +49,7 @@ def prim(grid: list[list[Cell]], rng: random.Random) -> None:
     frontiers: list[tuple[int, int, int, int, int]] = []
     get_frontiers(
         grid, visited, start, frontiers
-        )
+    )
     while frontiers:
         index = rng.randrange(len(frontiers))
 
