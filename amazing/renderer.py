@@ -4,6 +4,7 @@ from mlx import Mlx
 
 from mazegen import MazeConfig
 from mazegen import Cell, MazeGenerator
+from mazegen import MazeError, RendererError
 from mazegen import bfs
 from mazegen import constants
 
@@ -45,7 +46,7 @@ class MazeRenderer:
         self.rows = len(generator.grid)
         self.cols = len(generator.grid[0]) if generator.grid else 0
         if self.rows == 0 or self.cols == 0:
-            raise RuntimeError("Cannot render an empty maze")
+            raise RendererError("Cannot render an empty maze")
 
         maze_width = (
             self.cols * self.CELL_SIZE
@@ -73,11 +74,12 @@ class MazeRenderer:
         self.path_cells: set[Position] = set()
         self._image_displayed = False
         self._cleaned_up = False
+        self._pending_error: MazeError | None = None
 
         self.mlx = Mlx()
         self.mlx_ptr = self.mlx.mlx_init()
         if not self.mlx_ptr:
-            raise RuntimeError("Failed to initialize MLX")
+            raise RendererError("Failed to initialize MLX")
 
         self.win_ptr = self.mlx.mlx_new_window(
             self.mlx_ptr,
@@ -87,7 +89,7 @@ class MazeRenderer:
         )
         if not self.win_ptr:
             self.mlx.mlx_release(self.mlx_ptr)
-            raise RuntimeError("Failed to create MLX window")
+            raise RendererError("Failed to create MLX window")
 
         self.img_ptr = self.mlx.mlx_new_image(
             self.mlx_ptr,
@@ -97,7 +99,7 @@ class MazeRenderer:
         if not self.img_ptr:
             self.mlx.mlx_destroy_window(self.mlx_ptr, self.win_ptr)
             self.mlx.mlx_release(self.mlx_ptr)
-            raise RuntimeError("Failed to create MLX image")
+            raise RendererError("Failed to create MLX image")
 
         (
             self.image_data,
@@ -108,12 +110,12 @@ class MazeRenderer:
 
         if self.bits_per_pixel != 32:
             self.cleanup()
-            raise RuntimeError(
+            raise RendererError(
                 f"Unsupported bits per pixel: {self.bits_per_pixel}"
             )
         if self.image_format not in (0, 1):
             self.cleanup()
-            raise RuntimeError(
+            raise RendererError(
                 f"Unsupported image format: {self.image_format}"
             )
 
@@ -271,8 +273,8 @@ class MazeRenderer:
 
         path_state = "ON" if self.show_path else "OFF"
         controls = (
-            f"1: regenerate  2: path {path_state}  "
-            "3: color  4/Q/ESC: quit"
+            f"1: regenerate 2: path {path_state} "
+            "3: color 4/Q/ESC: quit"
         )
         text_y = self.window_height - self.CONTROL_HEIGHT + 14
         self.mlx.mlx_string_put(
@@ -314,6 +316,16 @@ class MazeRenderer:
         elif keycode in (ord("4"), ord("q"), 65307):
             self.stop()
 
+    def fail(self, error: Exception) -> None:
+        """Save a callback error and stop the MLX event loop."""
+        if isinstance(error, MazeError):
+            self._pending_error = error
+        else:
+            self._pending_error = RendererError(
+                f"Rendering error: {error}"
+            )
+        self.stop()
+
     def stop(self) -> None:
         """Request that the MLX event loop returns."""
         self.mlx.mlx_loop_exit(self.mlx_ptr)
@@ -335,12 +347,22 @@ class MazeRenderer:
 
     def run(self) -> None:
         """Draw the maze, register events and enter the MLX event loop."""
-        self.mlx.mlx_key_hook(self.win_ptr, _on_key, self)
-        self.mlx.mlx_expose_hook(self.win_ptr, _on_expose, self)
-        self.mlx.mlx_hook(self.win_ptr, 33, 0, _on_close, self)
-        self.redraw()
         try:
+            self.mlx.mlx_key_hook(self.win_ptr, _on_key, self)
+            self.mlx.mlx_expose_hook(self.win_ptr, _on_expose, self)
+            self.mlx.mlx_hook(self.win_ptr, 33, 0, _on_close, self)
+
+            self.redraw()
             self.mlx.mlx_loop(self.mlx_ptr)
+
+            if self._pending_error is not None:
+                raise self._pending_error
+        except MazeError:
+            raise
+        except Exception as error:
+            raise RendererError(
+                f"Rendering error: {error}"
+            ) from error
         finally:
             self.cleanup()
 
@@ -350,8 +372,7 @@ def _on_key(keycode: int, renderer: MazeRenderer) -> None:
     try:
         renderer.handle_key(keycode)
     except Exception as error:
-        print(f"Rendering error: {error}")
-        renderer.stop()
+        renderer.fail(error)
 
 
 def _on_expose(renderer: MazeRenderer) -> None:
@@ -359,8 +380,7 @@ def _on_expose(renderer: MazeRenderer) -> None:
     try:
         renderer.redraw()
     except Exception as error:
-        print(f"Rendering error: {error}")
-        renderer.stop()
+        renderer.fail(error)
 
 
 def _on_close(renderer: MazeRenderer) -> None:

@@ -94,7 +94,12 @@ class MazeGenerator:
             start_x, start_y = self.rng.choice(valid_positions)
             self._place_42_at(start_x, start_y)
 
-    def add_wall(self, cur_cell: Cell, next_cell: Cell, direction: int) -> None:
+    def add_wall(
+            self,
+            cur_cell: Cell,
+            next_cell: Cell,
+            direction: int
+            ) -> None:
         cur_cell.close_wall(direction)
         next_cell.close_wall(constants.OPPOSITE[direction])
 
@@ -196,8 +201,12 @@ class MazeGenerator:
                     self.grid, self._entry, self._exit)
                 file.write(path_to_direction(path))
         except PermissionError as error:
-            raise MazeGenerationError(f"Permission denied: {
-                                      file_name}") from error
+            raise MazeGenerationError(
+                "Permission denied: "
+                f"{file_name}"
+                ) from error
         except OSError as error:
-            raise MazeGenerationError(f"Cannot write maze file: {
-                                      file_name}") from error
+            raise MazeGenerationError(
+                "Cannot write maze file: "
+                f"{file_name}"
+                ) from error

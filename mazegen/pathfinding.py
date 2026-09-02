@@ -1,7 +1,7 @@
 from collections import deque
 from .cell import Cell
 from . import constants
-
+    
 
 def bfs(
     grid: list[list[Cell]],
@@ -10,7 +10,7 @@ def bfs(
 ) -> list[tuple[int, int]]:
     queue = deque([entry])
     visited: set[tuple[int, int]] = {(entry)}
-    parent: dict = {}
+    parent: dict[tuple[int, int], tuple[int, int]] = dict()
     while queue:
         current = queue.popleft()
         if current == exit:
@@ -28,7 +28,7 @@ def bfs(
             visited.add(neighbor)
             parent[neighbor] = current
             queue.append(neighbor)
-    path: list = []
+    path: list[tuple[int, int]] = []
     node = exit
     while node != entry:
         path.append(node)
@@ -38,8 +38,8 @@ def bfs(
     return path
 
 
-def path_to_direction(path: list) -> str:
-    directions: list = []
+def path_to_direction(path: list[tuple[int, int]]) -> str:
+    directions: list[str] = []
     for (x1, y1), (x2, y2) in zip(path, path[1:]):
         dx, dy = x2 - x1, y2 - y1
         if dy == -1:

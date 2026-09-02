@@ -16,3 +16,7 @@ class PatternError(MazeGenerationError):
 
 class OutputError(MazeError):
     pass
+
+
+class RendererError(MazeError):
+    pass
