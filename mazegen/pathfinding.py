@@ -1,7 +1,7 @@
 from collections import deque
 from .cell import Cell
 from . import constants
-    
+
 
 def bfs(
     grid: list[list[Cell]],

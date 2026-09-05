@@ -60,6 +60,11 @@ class MazeGenerator:
 
             if not (0 <= x < self._width and 0 <= y < self._height):
                 return False
+            if (
+                not self._is_perfect
+                and (self._width // 2, self._height // 2) == (x, y)
+            ):
+                return False
             if (x, y) == self._entry:
                 return False
             if (x, y) == self._exit:
@@ -103,6 +108,13 @@ class MazeGenerator:
         cur_cell.close_wall(direction)
         next_cell.close_wall(constants.OPPOSITE[direction])
 
+    def degree(self, cell: Cell) -> int:
+        count: int = 0
+        for derection in constants.DIRECTIONS:
+            if not cell.has_wall(derection):
+                count += 1
+        return count
+
     def _is_open_3x3(self, start_x: int, start_y: int) -> bool:
         for y in range(start_y, start_y + 3):
             for x in range(start_x, start_x + 3):
@@ -128,63 +140,145 @@ class MazeGenerator:
                     return True
         return False
 
-    def _add_loops(self) -> None:
-        candidates: list[tuple[Cell, Cell, int]] = []
-        loops_added: int = 0
+    def find_dead_ends(self) -> list[Cell]:
+        dead_ends: list[Cell] = []
         for row in self.grid:
             for cell in row:
-                x, y = cell.x, cell.y
-                if is_inside(x + 1, y, self._width, self._height):
-                    east_cell = self.grid[y][x + 1]
-                else:
-                    east_cell = None
-                if is_inside(x, y + 1, self._width, self._height):
-                    south_cell = self.grid[y + 1][x]
-                else:
-                    south_cell = None
                 if cell.blocked:
                     continue
-                if (east_cell
-                    and not east_cell.blocked
-                        and cell.has_wall(constants.EAST)):
-                    candidates.append((cell, east_cell, constants.EAST))
-                if (south_cell
-                    and not south_cell.blocked
-                        and cell.has_wall(constants.SOUTH)):
-                    candidates.append((cell, south_cell, constants.SOUTH))
+                if self.degree(cell) == 1:
+                    dead_ends.append(cell)
+        return dead_ends
 
-        target: int = max(1, len(candidates) // 10)
-        self.rng.shuffle(candidates)
-        for cell, next_cell, direction in candidates:
-            if loops_added >= target:
-                break
-            remove_wall(cell, next_cell, direction)
-            if self._has_open_3x3():
-                self.add_wall(cell, next_cell, direction)
+    def find_closed_neighbors(
+            self,
+            cell: Cell,
+            x: int,
+            y: int,
+            ) -> list[tuple[int, int, int]]:
+        neighbors: list[tuple[int, int, int]] = []
+        for direction, (dx, dy) in constants.DIRECTIONS.items():
+            nx = x + dx
+            ny = y + dy
+            if not is_inside(
+                    nx,
+                    ny,
+                    self._width,
+                    self._height
+                    ):
                 continue
-            loops_added += 1
+            if self.grid[ny][nx].blocked:
+                continue
+            if not cell.has_wall(direction):
+                continue
+            neighbors.append((direction, nx, ny))
+        return neighbors
+
+    def count_tolerated_dead_ends(self) -> int:
+        count = 0
+        for cell in self.find_dead_ends():
+            closed_neighbors = self.find_closed_neighbors(
+                cell,
+                cell.x,
+                cell.y,
+            )
+            if not closed_neighbors:
+                count += 1
+
+        return count
+
+    def braid_maze(self) -> bool:
+        tolerated_dead_ends: int = self.count_tolerated_dead_ends()
+        while True:
+            dead_ends: list[Cell] = self.find_dead_ends()
+            if len(dead_ends) <= tolerated_dead_ends:
+                return True
+            self.rng.shuffle(dead_ends)
+            progress: bool = False
+            for cell in dead_ends:
+                if self.degree(cell) != 1:
+                    continue
+                neighbors: list[
+                    tuple[int, int, int]
+                    ] = self.find_closed_neighbors(
+                        cell,
+                        cell.x,
+                        cell.y,
+                        )
+                self.rng.shuffle(neighbors)
+                for direction, nx, ny in neighbors:
+                    neighbor: Cell = self.grid[ny][nx]
+                    remove_wall(cell, neighbor, direction)
+                    if self._has_open_3x3():
+                        self.add_wall(cell, self.grid[ny][nx], direction)
+                        continue
+                    progress = True
+                    break
+
+            if not progress:
+                return len(dead_ends) <= tolerated_dead_ends
+
+    def count_loops(self) -> int:
+        vertices = 0
+        edges = 0
+
+        for row in self.grid:
+            for cell in row:
+                if cell.blocked:
+                    continue
+                vertices += 1
+                if (
+                    cell.x + 1 < self._width
+                    and not self.grid[cell.y][cell.x + 1].blocked
+                    and not cell.has_wall(constants.EAST)
+                ):
+                    edges += 1
+                if (
+                    cell.y + 1 < self._height
+                    and not self.grid[cell.y + 1][cell.x].blocked
+                    and not cell.has_wall(constants.SOUTH)
+                ):
+                    edges += 1
+
+        return edges - vertices + 1
+
+    def validate_non_perfect(self) -> bool:
+        tolerated_dead_ends: int = self.count_tolerated_dead_ends()
+        if not self.braid_maze():
+            return False
+
+        return (
+            len(self.find_dead_ends()) <= tolerated_dead_ends
+            and not self._has_open_3x3()
+            and self.count_loops() >= 2
+        )
 
     def generate(self) -> None:
-        self.reset_grid()
+        max_attempts = 20
 
-        try:
-            self._create_42()
-        except PatternError as error:
-            print(f"ERROR: {error}")
+        for _ in range(max_attempts):
+            self.reset_grid()
+            try:
+                self._create_42()
+            except PatternError as error:
+                print(f"ERROR: {error}")
 
-        if self._algorithm == "dfs":
-            dfs(self.grid, self.rng)
-        elif self._algorithm == "prim":
-            prim(self.grid, self.rng)
-        elif self._algorithm == "kruskal":
-            kruskal(self.grid, self.rng)
-        else:
-            raise MazeGenerationError(
-                f"Unsupported algorithm: {self._algorithm}"
-            )
+            if self._algorithm == "dfs":
+                dfs(self.grid, self.rng)
+            elif self._algorithm == "prim":
+                prim(self.grid, self.rng)
+            elif self._algorithm == "kruskal":
+                kruskal(self.grid, self.rng)
+            else:
+                raise MazeGenerationError(
+                    f"Unsupported algorithm: {self._algorithm}"
+                )
+            if self._is_perfect:
+                return
+            if self.validate_non_perfect():
+                return
 
-        if not self._is_perfect:
-            self._add_loops()
+        raise MazeGenerationError("Could not create a maze without dead ends")
 
     def output_mazefile(self) -> None:
         file_name: str = self._output_file
@@ -195,8 +289,8 @@ class MazeGenerator:
                         file.write(format(cell.walls, "X"))
                     file.write("\n")
                 file.write("\n")
-                file.write(f"{self._entry[0]}, {self._entry[1]}\n")
-                file.write(f"{self._exit[0]}, {self._exit[1]}\n")
+                file.write(f"{self._entry[0]},{self._entry[1]}\n")
+                file.write(f"{self._exit[0]},{self._exit[1]}\n")
                 path: list[tuple[int, int]] = bfs(
                     self.grid, self._entry, self._exit)
                 file.write(path_to_direction(path))

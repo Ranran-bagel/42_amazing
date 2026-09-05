@@ -1,5 +1,6 @@
 from mazegen import ConfigError
 from mazegen import MazeConfig
+import random
 
 REQUIRED_KEYS = {
     "WIDTH",
@@ -10,7 +11,6 @@ REQUIRED_KEYS = {
     "PERFECT",
 }
 
-DEFAULT_SEED = 42
 DEFAULT_ALGORITHM = "dfs"
 ALGORITHMS = {"dfs", "prim", "kruskal"}
 
@@ -26,6 +26,7 @@ def read_config(file_name: str) -> dict[str, str]:
                 if "=" not in line:
                     raise ConfigError(f"Invaild config syntax: {line}")
                 key, value = line.split("=", 1)
+                key = key.upper()
                 if not key or not value:
                     raise ConfigError(f"Invalide config syntxt: {line}")
                 if key in config:
@@ -97,7 +98,7 @@ def parse_config(raw_data: dict[str, str]) -> MazeConfig:
         except ValueError as error:
             raise ConfigError("SEED must be an integer") from error
     else:
-        seed = DEFAULT_SEED
+        seed = random.randint(0, 2**32 - 1)
 
     if "ALGORITHM" in raw_data:
         algorithm = raw_data["ALGORITHM"].lower()
